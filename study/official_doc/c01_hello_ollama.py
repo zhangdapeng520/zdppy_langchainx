@@ -15,6 +15,7 @@ os.environ['http_proxy'] = f"http://{MODEL_SERVICE_IP}:{MODEL_SERVICE_PORT}"
 os.environ['https_proxy'] = f"http://{MODEL_SERVICE_IP}:{MODEL_SERVICE_PORT}"
 
 llm = Ollama(model="qwen:4b-chat")
+# llm = Ollama(model="llama2")
 response = llm.invoke("how can langsmith help with testing?")
 print(response)
 

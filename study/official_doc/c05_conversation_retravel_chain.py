@@ -7,23 +7,25 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.chains import create_history_aware_retriever
+from langchain_core.prompts import MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 
 """
 Github: https://github.com/zhangdapeng520/zdppy_langchainx
-file: study/official_doc/c04_retraivel_chain2.py
+file: study/official_doc/c05_conversation_retravel_chain.py
 """
 
 # 创建模型对象
-llm = Ollama(model="qwen:4b-chat")
+llm = Ollama(model="qwen:0.5b")
 
 # 构建提示词
-prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context:
+prompt = ChatPromptTemplate.from_messages([
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("user", "{input}"),
+    ("user", "Given the above conversation, generate a search query to look up to get information relevant to the conversation")
+])
 
-<context>
-{context}
-</context>
-
-Question: {input}""")
 
 # 将结果解析为字符串
 output_parser = StrOutputParser()
@@ -40,13 +42,14 @@ text_splitter = RecursiveCharacterTextSplitter()
 documents = text_splitter.split_documents(docs)
 vector = FAISS.from_documents(documents, embeddings)
 
-# 构建链条
-document_chain = create_stuff_documents_chain(llm, prompt)
-
 # 设置检索器
 retriever = vector.as_retriever()
-retrieval_chain = create_retrieval_chain(retriever, document_chain)
+retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
 
 # 调用
-response = retrieval_chain.invoke({"input": "how can langsmith help with testing?"})
+chat_history = [HumanMessage(content="Can LangSmith help test my LLM applications?"), AIMessage(content="Yes!")]
+response = retriever_chain.invoke({
+    "chat_history": chat_history,
+    "input": "Tell me how"
+})
 print(response["answer"])
